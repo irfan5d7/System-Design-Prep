@@ -1,5 +1,6 @@
 from enum import Enum
 import random
+import math
 
 # Enum for package sizes
 class PackageSize(Enum):
@@ -68,14 +69,25 @@ class Customer:
             print(f"Customer {self.customer_id}: Invalid PIN or no assigned locker")
             return False
 
+# Strategy Interface for distance calculation
+class DistanceCalculationStrategy:
+    def calculate_distance(self, loc1_latitude: float, loc1_longitude: float, loc2_latitude: float, loc2_longitude: float) -> float:
+        pass
+
+# Concrete Strategy for Euclidean distance calculation
+class EuclideanDistanceStrategy(DistanceCalculationStrategy):
+    def calculate_distance(self, loc1_latitude: float, loc1_longitude: float, loc2_latitude: float, loc2_longitude: float) -> float:
+        return math.sqrt((loc1_latitude - loc2_latitude) ** 2 + (loc1_longitude - loc2_longitude) ** 2)
+
 # Amazon Locker Management System class using Singleton pattern
 class AmazonLockerSystem:
     _instance = None
 
-    def __new__(cls):
+    def __new__(cls, strategy: DistanceCalculationStrategy):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             cls._instance.locations = []
+            cls._instance.strategy = strategy
         return cls._instance
 
     def add_location(self, location):
@@ -87,7 +99,7 @@ class AmazonLockerSystem:
         min_distance = float('inf')
 
         for location in self.locations:
-            distance = ((location.latitude - customer_latitude) ** 2 + (location.longitude - customer_longitude) ** 2) ** 0.5
+            distance = self.strategy.calculate_distance(location.latitude, location.longitude, customer_latitude, customer_longitude)
             if distance < min_distance:
                 min_distance = distance
                 closest_location = location
@@ -128,8 +140,9 @@ if __name__ == "__main__":
     # Create customer
     customer1 = Customer(1, 37.7749, -122.4194)
 
-    # Create Amazon Locker System
-    amazon_locker_system = AmazonLockerSystem()
+    # Create Amazon Locker System with Euclidean distance strategy
+    euclidean_strategy = EuclideanDistanceStrategy()
+    amazon_locker_system = AmazonLockerSystem(euclidean_strategy)
     amazon_locker_system.add_location(location1)
 
     # Order package and assign locker
